@@ -1,13 +1,13 @@
 # Copyright 2022 Fall Lewis YOMBA
 #
 
-steps:
+steps: #les etapes
     
-- name: gcr.io/cloud-builders/gcloud
-  entrypoint: /bin/bash
+- name: gcr.io/cloud-builders/gcloud #nom des images qu'on va utiliser 
+  entrypoint: /bin/bash # on se position sur le bin/bash pour taper les commande 
   args:
-  - -c
-  - |
+  - -c # pour presiser qu'on va taper des commandes 
+  - | # pour sinfier qu'on veut decrire plusieur ligne 
     gcloud container images delete --force-delete-tags gcr.io/$PROJECT_ID/cargo1:latest
     
 - name: gcr.io/cloud-builders/docker
@@ -22,9 +22,9 @@ steps:
     '{{index .RepoTags 0}}@{{.Id}}' > /workspace/image-digest.txt && \
     cat image-digest.txt
     
-- name: gcr.io/cloud-builders/docker
+- name: gcr.io/cloud-builders/docker 
   entrypoint: /bin/bash
-  args:
+  args:  # l'etapes de tous ce qui est push 
   - -c
   - |
      docker push gcr.io/$PROJECT_ID/cargo1:$SHORT_SHA
@@ -32,30 +32,30 @@ steps:
      
 - name: gcr.io/cloud-builders/gcloud
   entrypoint: /bin/bash
-  args:
+  args: # on scan notre artefact et on copie la reponse dans notre wokpace
   - -c
   - |
     gcloud artifacts docker images scan gcr.io/$PROJECT_ID/cargo1:$SHORT_SHA --format='value(response.scan)' > /workspace/scan_id.txt
 
 - name: gcr.io/cloud-builders/gcloud
   entrypoint: /bin/bash
-  args:
+  args: # ici on verifie le niveau de vulnerabté pour s'assurer qu'elle n'est pas grande 
   - -c
   - |
     gcloud artifacts docker images list-vulnerabilities $(cat /workspace/scan_id.txt) \
     --format='value(vulnerability.effectiveSeverity)' | if grep -Fxq $_SEVERITY; \
-    then echo 'Failed vulnerability check' && exit 1; else exit 0; fi
+    then echo 'Failed vulnerability check' && exit 1; else exit 0; fi # si la vulnerabilite est grande on renvoie une eurere 
        
-- name: "gcr.io/cloud-builders/gke-deploy"
+- name: "gcr.io/cloud-builders/gke-deploy" # on deploy 
   args:
   - run
-  - --filename=kubernetes
-  - --location=us-central1-b
-  - --cluster=eazytraining-cluster
+  - --filename=kubernetes # ou se trouve les manifeste kubernetes ici dans kubernetes 
+  - --location=us-central1-b # localisation du deploiement 
+  - --cluster=eazytraining-cluster # et le cluster 
   - --image=gcr.io/$PROJECT_ID/cargo1:$SHORT_SHA
 
 images:
-- 'gcr.io/$PROJECT_ID/cargo1:$SHORT_SHA'
+- 'gcr.io/$PROJECT_ID/cargo1:$SHORT_SHA' # l'image a utiliser au sein de notre cloud build 
 
-tags: ['gcp-cloud-build-eazytraining']
+tags: ['gcp-cloud-build-eazytraining'] # on precise le tad 
 
